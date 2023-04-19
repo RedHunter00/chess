@@ -5,6 +5,7 @@ use crate::board::Board;
 use crate::positions::mov::Move;
 use crate::positions::position::{Direction, Position};
 use crate::utilities::Color;
+use crate::positions::mov::CastleTypes;
 
 pub struct King {
     position: Position,
@@ -69,6 +70,62 @@ impl Piece for King {
                         to: target,
                     };
                     moves.push(mov);
+                }
+            }
+        }
+
+        match self.get_color() {
+            Color::White => {
+                if board.get_modifiers().can_white_castle_kingside {
+
+                    if let None = board.get_piece(self.get_position().increment(Direction::Right, 1).unwrap()){
+                        if let None = board.get_piece(self.get_position().increment(Direction::Right, 2).unwrap()){
+                            let mov = Move::Castle {
+                                color: Color::White,
+                                castle_type: CastleTypes::KingSide,
+                            };
+                            moves.push(mov);
+                        }
+                    };
+                }
+                if board.get_modifiers().can_white_castle_queenside {
+                    if let None = board.get_piece(self.get_position().increment(Direction::Left, 1).unwrap()){
+                        if let None = board.get_piece(self.get_position().increment(Direction::Left, 2).unwrap()){
+                            if let None = board.get_piece(self.get_position().increment(Direction::Left, 3).unwrap()){
+                                let mov = Move::Castle {
+                                    color: Color::White,
+                                    castle_type: CastleTypes::QueenSide,
+                                };
+                                moves.push(mov);
+                            }
+                        }
+                    };
+                }
+            }
+            Color::Black => {
+                if board.get_modifiers().can_black_castle_kingside {
+                    if let None = board.get_piece(self.get_position().increment(Direction::Right, 1).unwrap()){
+                        if let None = board.get_piece(self.get_position().increment(Direction::Right, 2).unwrap()){
+                            let mov = Move::Castle {
+                                color: Color::Black,
+                                castle_type: CastleTypes::KingSide,
+                            };
+                            moves.push(mov);
+                        }
+                    };
+                }
+                if board.get_modifiers().can_black_castle_queenside {
+                    if let None = board.get_piece(self.get_position().increment(Direction::Left, 1).unwrap()){
+                        if let None = board.get_piece(self.get_position().increment(Direction::Left, 2).unwrap()){
+                            if let None = board.get_piece(self.get_position().increment(Direction::Left, 3).unwrap()){
+                                let mov = Move::Castle {
+                                    color: Color::Black,
+                                    castle_type: CastleTypes::QueenSide,
+                                };
+                                moves.push(mov);
+                            }
+                        }
+                    };
                 }
             }
         }

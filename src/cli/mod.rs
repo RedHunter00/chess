@@ -1,16 +1,23 @@
 /// The cli module contains the code for the command line interface
-
 use crate::board::*;
-use colored::*;
+use crate::positions::mov::CastleTypes;
 use crate::positions::mov::Move;
+use crate::positions::mov::PieceTypes;
 use crate::positions::position::Position;
+use colored::*;
 use std::process::Command;
 
+//TODO: make squares white and black instead of dots
 /// Renders the game to the terminal (cli)
 fn render_game(fen: String) {
     let x: Vec<&str> = fen.split("/").collect();
 
+    #[cfg(target_os = "linux")]
     let _ = Command::new("clear").status();
+
+    #[cfg(target_os = "windows")]
+    let _ = Command::new("cls").status();
+
     for rank in (0..=7).rev() {
         print!("{}", (rank + 1).to_string().red());
 
@@ -39,7 +46,7 @@ fn render_game(fen: String) {
 
         println!();
     }
-    
+
     print!(" ");
     let mut letter = 'a';
     for _ in 0..=7 {
@@ -66,7 +73,7 @@ pub fn start_game() {
 
     board.update_fen();
     render_game(board.get_fen());
-    
+
     loop {
         println!("\nenter move:");
 
@@ -75,8 +82,68 @@ pub fn start_game() {
             .read_line(&mut input)
             .expect("Failed to read line");
 
+        let turn = board.get_turn();
+
+        let promotions = vec!["=Q", "=R", "=B", "=Kn"];
+
+        for pat in promotions {
+            if input.contains(pat) {
+                let input: Vec<&str> = input.split_whitespace().collect();
+
+                let from = Position::from_an(
+                    input[0].chars().nth(0).unwrap(),
+                    input[0].chars().nth(1).unwrap().to_digit(10).unwrap() as u8,
+                );
+                let to = Position::from_an(
+                    input[1].chars().nth(0).unwrap(),
+                    input[1].chars().nth(1).unwrap().to_digit(10).unwrap() as u8,
+                );
+
+                let piece_type;
+
+                match pat {
+                    "=Q" => piece_type = PieceTypes::Queen,
+                    "=R" => piece_type = PieceTypes::Rook,
+                    "=B" => piece_type = PieceTypes::Bishop,
+                    "=Kn" => piece_type = PieceTypes::Knight,
+                    _ => panic!("Invalid promotion"),
+                }
+
+                let mov = Move::Promotion {
+                    from,
+                    to,
+                    promotion: piece_type,
+                };
+
+                make_move(&mut board, mov);
+                continue;
+            }
+        }
+
+        let queenside = input.contains("O-O-O");
+
+        if queenside {
+            let mov = Move::Castle {
+                color: turn,
+                castle_type: CastleTypes::QueenSide,
+            };
+            make_move(&mut board, mov);
+            continue;
+        }
+
+        let kingside = input.contains("O-O");
+
+        if kingside {
+            let mov = Move::Castle {
+                color: turn,
+                castle_type: CastleTypes::KingSide,
+            };
+            make_move(&mut board, mov);
+            continue;
+        }
+
         let input: Vec<&str> = input.split_whitespace().collect();
-        
+
         let from = Position::from_an(
             input[0].chars().nth(0).unwrap(),
             input[0].chars().nth(1).unwrap().to_digit(10).unwrap() as u8,

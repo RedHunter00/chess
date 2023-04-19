@@ -1,17 +1,23 @@
 /// Board module
 /// Contains the code for the board struct
-/// Contains most of the high level game logic accessible for the user 
-
+/// Contains most of the high level game logic accessible for the user
+mod modifiers;
 use crate::pieces::bishop::Bishop;
 use crate::pieces::king::King;
 use crate::pieces::knight::Knight;
 use crate::pieces::pawn::Pawn;
 use crate::pieces::queen::Queen;
 use crate::pieces::rook::Rook;
+use crate::positions::mov::CastleTypes::{KingSide, QueenSide};
 use crate::positions::mov::Move;
+use crate::positions::mov::PieceTypes;
+use crate::positions::position::Direction;
+use crate::positions::position::Direction::{Down, Up};
+use crate::utilities::Color;
 use crate::utilities::Color::Black;
 use crate::utilities::Color::White;
 use crate::{pieces::piece::Piece, positions::position::Position};
+use modifiers::Modifiers;
 use std::collections::HashMap;
 
 /// Board struct
@@ -19,6 +25,8 @@ use std::collections::HashMap;
 /// Contains a string representation of the board in FEN notation
 pub struct Board {
     pieces: HashMap<Position, Box<dyn Piece>>,
+    modifiers: Modifiers,
+    turn: Color,
     fen: String,
 }
 
@@ -27,6 +35,8 @@ impl Board {
     pub fn new() -> Board {
         Board {
             pieces: HashMap::new(),
+            modifiers: Modifiers::new(),
+            turn: White,
             fen: String::new(),
         }
     }
@@ -65,6 +75,8 @@ impl Board {
         }
         Board {
             pieces,
+            modifiers: Modifiers::new(),
+            turn: White,
             fen: String::new(),
         }
     }
@@ -83,6 +95,10 @@ impl Board {
     /// return the current FEN notation of the board
     pub fn get_fen(&self) -> String {
         self.fen.clone()
+    }
+
+    pub fn get_turn(&self) -> Color {
+        self.turn
     }
 
     //^ Only for debugging purposes for now
@@ -114,35 +130,252 @@ impl Board {
         }
     }
 
+    pub fn get_modifiers(&self) -> &Modifiers {
+        &self.modifiers
+    }
+
     /// Makes a move on the board
     /// Checks if the move is legal
     /// If it is legal, it makes the move
-    /// If it is not legal, it does nothing
     pub fn make_move(&mut self, mov: Move) {
+        // match self.get_modifiers().en_passant {
+        //     Some(_) => {
+        //         self.modifiers.en_passant = None;
+        //     }
+        //     None => (),
+        // }
+
         match mov {
             Move::Normal { from, to } => {
+                if from.get_x() > 7 || from.get_y() > 7 || to.get_x() > 7 || to.get_y() > 7 {
+                    println!("Invalid location at from {} and/or to {}", from, to);
+                    return;
+                }
+
+                if let None = self.get_piece(from) {
+                    println!("No piece at {}", from);
+                    return;
+                }
+
+                if let Some(piece) = self.get_piece(from) {
+                    if piece.get_color() != self.turn {
+                        println!("Wrong color piece at {}", from);
+                        return;
+                    }
+                }
+
                 let moves = self.get_piece(from).unwrap().get_all_legal_moves(self);
 
-                for mv in moves.as_slice() {
-                    match mv {
-                        Move::Normal { from, to } => {
-                            println!("Legal move from {} to {}", from, to);
+                // & Only for debugging purposes
+                // for mv in moves.as_slice() {
+                //     match mv {
+                //         Move::Normal { from, to } => {
+                //             println!("Legal move from {} to {}", from, to);
+                //         }
+                //         _ => (),
+                //     }
+                // }
+
+                if moves.contains(&mov) {
+                    println!("Normal move from {} to {}", from, to);
+
+                    self.pieces.remove(&to);
+                    let mut piece = self.pieces.remove(&from).unwrap();
+                    piece.set_position(to);
+
+                    if piece.get_piece_type() == "King" {
+                        match self.turn {
+                            White => {
+                                self.modifiers.can_white_castle_kingside = false;
+                                self.modifiers.can_white_castle_queenside = false;
+                            }
+                            Black => {
+                                self.modifiers.can_black_castle_kingside = false;
+                                self.modifiers.can_black_castle_queenside = false;
+                            }
                         }
-                        _ => (),
+                    } else if piece.get_piece_type() == "Rook" {
+                        match self.turn {
+                            White => {
+                                if from == Position::new(0, 0) {
+                                    self.modifiers.can_white_castle_queenside = false;
+                                } else if from == Position::new(7, 0) {
+                                    self.modifiers.can_white_castle_kingside = false;
+                                }
+                            }
+                            Black => {
+                                if from == Position::new(0, 7) {
+                                    self.modifiers.can_black_castle_queenside = false;
+                                } else if from == Position::new(7, 7) {
+                                    self.modifiers.can_black_castle_kingside = false;
+                                }
+                            }
+                        }
+                    } else if piece.get_piece_type() == "Pawn" {
+                        match piece.get_color() {
+                            White => {
+                                if let Some(ep) = self.modifiers.en_passant {
+                                    if ep == to {
+                                        self.pieces.remove(
+                                            &piece.get_position().increment(Up, 1).unwrap(),
+                                        );
+                                    }
+                                }
+                            }
+                            Black => {
+                                if let Some(ep) = self.modifiers.en_passant {
+                                    if ep == to {
+                                        self.pieces.remove(
+                                            &piece.get_position().increment(Down, 1).unwrap(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
+                        match self.turn {
+                            White => {
+                                if from.get_y() == 1 && to.get_y() == 3 {
+                                    self.modifiers.en_passant =
+                                        Some(to.increment(Direction::Up, 1).unwrap());
+                                }
+                            }
+                            Black => {
+                                if from.get_y() == 6 && to.get_y() == 4 {
+                                    self.modifiers.en_passant =
+                                        Some(to.increment(Direction::Down, 1).unwrap());
+                                }
+                            }
+                        }
+                    }
+
+                    self.pieces.insert(to, piece);
+                } else {
+                    println!("Illegal move from {} to {}", from, to);
+                    return;
+                }
+            }
+            Move::Castle { color, castle_type } => {
+                let mut moves = vec![];
+                for piece in self.pieces.values() {
+                    if piece.get_color() == color && piece.get_piece_type() == "King" {
+                        moves = piece.get_all_legal_moves(self);
                     }
                 }
 
                 if moves.contains(&mov) {
-                    println!("Normal move from {} to {}", from, to);
-                    self.pieces.remove(&to);
-                    let mut piece = self.pieces.remove(&from).unwrap();
-                    piece.set_position(to);
-                    self.pieces.insert(to, piece);
+                    match castle_type {
+                        KingSide => {
+                            let king_from = match color {
+                                White => Position::new(4, 0),
+                                Black => Position::new(4, 7),
+                            };
+                            let king_to = match color {
+                                White => Position::new(6, 0),
+                                Black => Position::new(6, 7),
+                            };
+                            let rook_from = match color {
+                                White => Position::new(7, 0),
+                                Black => Position::new(7, 7),
+                            };
+                            let rook_to = match color {
+                                White => Position::new(5, 0),
+                                Black => Position::new(5, 7),
+                            };
+
+                            let mut king = self.pieces.remove(&king_from).unwrap();
+                            king.set_position(king_to);
+                            self.pieces.insert(king_to, king);
+
+                            let mut rook = self.pieces.remove(&rook_from).unwrap();
+                            rook.set_position(rook_to);
+                            self.pieces.insert(rook_to, rook);
+                        }
+                        QueenSide => {
+                            let king_from = match color {
+                                White => Position::new(4, 0),
+                                Black => Position::new(4, 7),
+                            };
+                            let king_to = match color {
+                                White => Position::new(2, 0),
+                                Black => Position::new(2, 7),
+                            };
+                            let rook_from = match color {
+                                White => Position::new(0, 0),
+                                Black => Position::new(0, 7),
+                            };
+                            let rook_to = match color {
+                                White => Position::new(3, 0),
+                                Black => Position::new(3, 7),
+                            };
+
+                            let mut king = self.pieces.remove(&king_from).unwrap();
+                            king.set_position(king_to);
+                            self.pieces.insert(king_to, king);
+
+                            let mut rook = self.pieces.remove(&rook_from).unwrap();
+                            rook.set_position(rook_to);
+                            self.pieces.insert(rook_to, rook);
+                        }
+                    }
                 } else {
-                    println!("Illegal move from {} to {}", from, to);
+                    println!("Illegal castleing move");
+                    return;
+                }
+
+                match self.turn {
+                    White => {
+                        self.modifiers.can_white_castle_kingside = false;
+                        self.modifiers.can_white_castle_queenside = false;
+                    }
+                    Black => {
+                        self.modifiers.can_black_castle_kingside = false;
+                        self.modifiers.can_black_castle_queenside = false;
+                    }
                 }
             }
-            _ => (),
+            Move::Promotion {
+                from,
+                to,
+                promotion,
+            } => {
+                let mut moves = vec![];
+                for piece in self.pieces.values() {
+                    if piece.get_position() == from {
+                        moves = piece.get_all_legal_moves(self);
+                    }
+                }
+
+                if moves.contains(&mov) {
+                    match promotion {
+                        PieceTypes::Queen => {
+                            self.pieces.insert(to, Box::new(Queen::new(to, White)))
+                        }
+                        PieceTypes::Rook => self.pieces.insert(to, Box::new(Rook::new(to, White))),
+                        PieceTypes::Bishop => {
+                            self.pieces.insert(to, Box::new(Bishop::new(to, White)))
+                        }
+                        PieceTypes::Knight => {
+                            self.pieces.insert(to, Box::new(Knight::new(to, White)))
+                        }
+                        _ => self.pieces.insert(to, Box::new(Queen::new(to, White))),
+                    };
+
+                    self.pieces.remove(&from);
+                } else {
+                    println!("Illegal promotion move from {} to {}", from, to);
+                    return;
+                }
+            }
+        }
+
+        self.turn = match self.turn {
+            White => Black,
+            Black => White,
+        };
+
+        if let Some(pos) = self.get_modifiers().en_passant {
+            println!("En passant at {}", pos);
         }
     }
 
