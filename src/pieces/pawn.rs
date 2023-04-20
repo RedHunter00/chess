@@ -177,7 +177,6 @@ impl Piece for Pawn {
             }
         }
 
-        println!("{}", start.increment(vertical, 1).unwrap().to_string());
         if let Some(target) = start.increment(vertical, 1) {
             if target.get_y() != 0 && target.get_y() != 7 {
                 if let None = board.get_piece(target) {
@@ -232,8 +231,6 @@ impl Piece for Pawn {
                         to: target,
                     };
                     moves.push(mov);
-                } else {
-                    println!("{:?}", target);
                 }
             }
         }

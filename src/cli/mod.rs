@@ -4,6 +4,7 @@ use crate::positions::mov::CastleTypes;
 use crate::positions::mov::Move;
 use crate::positions::mov::PieceTypes;
 use crate::positions::position::Position;
+use crate::utilities::Color;
 use colored::*;
 use std::process::Command;
 
@@ -75,6 +76,14 @@ pub fn start_game() {
     render_game(board.get_fen());
 
     loop {
+        if let Some(color) = board.is_checkmated(){
+            match color {
+                Color::White => println!("Black wins by checkmate"),
+                Color::Black => println!("White wins by checkmate"),
+            }
+            return;
+        }
+
         println!("\nenter move:");
 
         let mut input = String::new();

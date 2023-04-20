@@ -17,12 +17,14 @@ use crate::utilities::Color;
 use crate::utilities::Color::Black;
 use crate::utilities::Color::White;
 use crate::{pieces::piece::Piece, positions::position::Position};
+use log::debug;
 use modifiers::Modifiers;
 use std::collections::HashMap;
 
 /// Board struct
 /// Contains a hashmap of all the pieces on the board
 /// Contains a string representation of the board in FEN notation
+
 pub struct Board {
     pieces: HashMap<Position, Box<dyn Piece>>,
     modifiers: Modifiers,
@@ -86,6 +88,10 @@ impl Board {
         self.pieces.get(&position)
     }
 
+    pub fn get_all_pieces(&self) -> &HashMap<Position, Box<dyn Piece>> {
+        &self.pieces
+    }
+
     //^ Only for debugging purposes for now
     /// Adds a piece to the board
     pub fn add_piece(&mut self, position: Position, piece: Box<dyn Piece>) {
@@ -105,14 +111,14 @@ impl Board {
     /// prints the position and piece at that position
     pub fn print_position(&self, position: Position) {
         if let Some(piece) = self.get_piece(position) {
-            println!(
+            debug!(
                 "{} {} {:?}",
                 position,
                 piece.get_piece_type(),
                 piece.get_color()
             );
         } else {
-            println!("{} None", position);
+            debug!("{} None", position);
         }
     }
 
@@ -120,7 +126,7 @@ impl Board {
     /// prints all the positions and pieces on the board
     pub fn print_all_positions(&self) {
         for (position, piece) in self.pieces.iter() {
-            println!(
+            debug!(
                 "{} {} {} {:?}",
                 position.get_x(),
                 position.get_y(),
@@ -132,6 +138,219 @@ impl Board {
 
     pub fn get_modifiers(&self) -> &Modifiers {
         &self.modifiers
+    }
+
+    pub fn get_all_legal_moves_for_white(&self) -> Vec<Move> {
+        let mut moves = Vec::new();
+        for piece in self.get_all_pieces().values() {
+            if piece.get_color() == White {
+                moves.append(&mut piece.get_all_legal_moves(self));
+            }
+        }
+        moves
+    }
+
+    pub fn get_all_legal_moves_for_black(&self) -> Vec<Move> {
+        let mut moves = Vec::new();
+        for piece in self.get_all_pieces().values() {
+            if piece.get_color() == Black {
+                moves.append(&mut piece.get_all_legal_moves(self));
+            }
+        }
+        moves
+    }
+
+    pub fn get_all_legal_moves(&self) -> Vec<Move> {
+        let mut moves = Vec::new();
+        for piece in self.get_all_pieces().values() {
+            moves.append(&mut piece.get_all_legal_moves(self));
+        }
+        moves
+    }
+
+    pub fn is_in_check(&self) -> bool {
+        let mut king_pos = None;
+        for piece in self.get_all_pieces().values() {
+            if piece.get_piece_type() == "King" && piece.get_color() == self.turn {
+                king_pos = Some(piece.get_position());
+                break;
+            }
+        }
+
+        if let None = king_pos {
+            return false;
+        }
+
+        let king_pos = king_pos.unwrap();
+
+        let mut in_check = false;
+        match self.turn {
+            White => {
+                for mov in self.get_all_legal_moves_for_black() {
+                    match mov {
+                        Move::Normal { from, to } => {
+                            if to == king_pos {
+                                debug!("Check at {} from {}", king_pos, from);
+                                in_check = true;
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+            }
+            Black => {
+                for mov in self.get_all_legal_moves_for_white() {
+                    match mov {
+                        Move::Normal { from, to } => {
+                            if to == king_pos {
+                                debug!("Check at {} from {}", king_pos, from);
+                                in_check = true;
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+            }
+        }
+
+        in_check
+    }
+
+    pub fn is_checkmated(&mut self) -> Option<Color> {
+        match self.turn {
+            White => {
+                for mov in self.get_all_legal_moves_for_white() {
+                    match mov {
+                        Move::Normal { from, to } => {
+                            //this code is bad but it works
+                            let captured_piece = self.pieces.remove(&to);
+                            let mut piece = self.pieces.remove(&from).unwrap();
+                            piece.set_position(to);
+                            self.pieces.remove(&from);
+                            self.pieces.insert(to, piece);
+
+                            let is_in_check = self.is_in_check();
+
+                            // Reversing the move
+                            let mut piece = self.pieces.remove(&to).unwrap();
+                            piece.set_position(from);
+                            self.pieces.insert(from, piece);
+
+                            if let Some(captured_piece) = captured_piece {
+                                self.pieces.insert(to, captured_piece);
+                            }
+
+                            if is_in_check != true {
+                                return None;
+                            }
+                        }
+                        Move::Castle {
+                            color: _,
+                            castle_type: _,
+                        } => {
+                            if self.is_in_check() != true {
+                                return None;
+                            }
+                        }
+                        Move::Promotion {
+                            from,
+                            to,
+                            promotion: _,
+                        } => {
+                            //this code is bad but it works
+                            let captured_piece = self.pieces.remove(&to);
+                            let mut piece = self.pieces.remove(&from).unwrap();
+                            piece.set_position(to);
+                            self.pieces.remove(&from);
+                            self.pieces.insert(to, piece);
+
+                            let is_in_check = self.is_in_check();
+
+                            // Reversing the move
+                            let mut piece = self.pieces.remove(&to).unwrap();
+                            piece.set_position(from);
+                            self.pieces.insert(from, piece);
+
+                            if let Some(captured_piece) = captured_piece {
+                                self.pieces.insert(to, captured_piece);
+                            }
+
+                            if is_in_check != true {
+                                return None;
+                            }
+                        }
+                    }
+                }
+
+                return Some(White);
+            }
+            Black => {
+                for mov in self.get_all_legal_moves_for_black() {
+                    match mov {
+                        Move::Normal { from, to } => {
+                            //this code is bad but it works
+                            let captured_piece = self.pieces.remove(&to);
+                            let mut piece = self.pieces.remove(&from).unwrap();
+                            piece.set_position(to);
+                            self.pieces.remove(&from);
+                            self.pieces.insert(to, piece);
+
+                            let is_in_check = self.is_in_check();
+
+                            // Reversing the move
+                            let mut piece = self.pieces.remove(&to).unwrap();
+                            piece.set_position(from);
+                            self.pieces.insert(from, piece);
+
+                            if let Some(captured_piece) = captured_piece {
+                                self.pieces.insert(to, captured_piece);
+                            }
+
+                            if is_in_check != true {
+                                return None;
+                            }
+                        }
+                        Move::Castle {
+                            color: _,
+                            castle_type: _,
+                        } => {
+                            if self.is_in_check() != true {
+                                return None;
+                            }
+                        }
+                        Move::Promotion {
+                            from,
+                            to,
+                            promotion: _,
+                        } => {
+                            //this code is bad but it works
+                            let captured_piece = self.pieces.remove(&to);
+                            let mut piece = self.pieces.remove(&from).unwrap();
+                            piece.set_position(to);
+                            self.pieces.remove(&from);
+                            self.pieces.insert(to, piece);
+
+                            let is_in_check = self.is_in_check();
+
+                            // Reversing the move
+                            let mut piece = self.pieces.remove(&to).unwrap();
+                            piece.set_position(from);
+                            self.pieces.insert(from, piece);
+
+                            if let Some(captured_piece) = captured_piece {
+                                self.pieces.insert(to, captured_piece);
+                            }
+
+                            if is_in_check != true {
+                                return None;
+                            }
+                        }
+                    }
+                }
+
+                return Some(Black);
+            }
+        }
     }
 
     /// Makes a move on the board
@@ -148,18 +367,18 @@ impl Board {
         match mov {
             Move::Normal { from, to } => {
                 if from.get_x() > 7 || from.get_y() > 7 || to.get_x() > 7 || to.get_y() > 7 {
-                    println!("Invalid location at from {} and/or to {}", from, to);
+                    debug!("Invalid location at from {} and/or to {}", from, to);
                     return;
                 }
 
                 if let None = self.get_piece(from) {
-                    println!("No piece at {}", from);
+                    debug!("No piece at {}", from);
                     return;
                 }
 
                 if let Some(piece) = self.get_piece(from) {
                     if piece.get_color() != self.turn {
-                        println!("Wrong color piece at {}", from);
+                        debug!("Wrong color piece at {}", from);
                         return;
                     }
                 }
@@ -170,14 +389,37 @@ impl Board {
                 // for mv in moves.as_slice() {
                 //     match mv {
                 //         Move::Normal { from, to } => {
-                //             println!("Legal move from {} to {}", from, to);
+                //             debug!("Legal move from {} to {}", from, to);
                 //         }
                 //         _ => (),
                 //     }
                 // }
 
                 if moves.contains(&mov) {
-                    println!("Normal move from {} to {}", from, to);
+                    debug!("Normal move from {} to {}", from, to);
+
+                    //this code is bad but it works
+                    let captured_piece = self.pieces.remove(&to);
+                    let mut piece = self.pieces.remove(&from).unwrap();
+                    piece.set_position(to);
+                    self.pieces.remove(&from);
+                    self.pieces.insert(to, piece);
+
+                    let is_in_check = self.is_in_check();
+
+                    // Reversing the move
+                    let mut piece = self.pieces.remove(&to).unwrap();
+                    piece.set_position(from);
+                    self.pieces.insert(from, piece);
+
+                    if let Some(captured_piece) = captured_piece {
+                        self.pieces.insert(to, captured_piece);
+                    }
+
+                    if is_in_check == true {
+                        debug!("Can't move into check");
+                        return;
+                    }
 
                     self.pieces.remove(&to);
                     let mut piece = self.pieces.remove(&from).unwrap();
@@ -255,7 +497,7 @@ impl Board {
 
                     self.pieces.insert(to, piece);
                 } else {
-                    println!("Illegal move from {} to {}", from, to);
+                    debug!("Illegal move from {} to {}", from, to);
                     return;
                 }
             }
@@ -268,6 +510,15 @@ impl Board {
                 }
 
                 if moves.contains(&mov) {
+                    if self.is_in_check() == true {
+                        debug!("Can't move into check");
+                        self.turn = match self.turn {
+                            White => Black,
+                            Black => White,
+                        };
+                        return;
+                    }
+
                     match castle_type {
                         KingSide => {
                             let king_from = match color {
@@ -323,7 +574,7 @@ impl Board {
                         }
                     }
                 } else {
-                    println!("Illegal castleing move");
+                    debug!("Illegal castleing move");
                     return;
                 }
 
@@ -351,13 +602,38 @@ impl Board {
                 }
 
                 if moves.contains(&mov) {
+                    //this code is bad but it works
+                    let captured_piece = self.pieces.remove(&to);
+                    let mut piece = self.pieces.remove(&from).unwrap();
+                    piece.set_position(to);
+                    self.pieces.remove(&from);
+                    self.pieces.insert(to, piece);
+
+                    let is_in_check = self.is_in_check();
+
+                    // Reversing the move
+                    let mut piece = self.pieces.remove(&to).unwrap();
+                    piece.set_position(from);
+                    self.pieces.insert(from, piece);
+
+                    if let Some(captured_piece) = captured_piece {
+                        self.pieces.insert(to, captured_piece);
+                    }
+
+                    if is_in_check == true {
+                        debug!("Can't move into check");
+                        return;
+                    }
+
                     match self.turn {
                         White => {
                             match promotion {
                                 PieceTypes::Queen => {
                                     self.pieces.insert(to, Box::new(Queen::new(to, White)))
                                 }
-                                PieceTypes::Rook => self.pieces.insert(to, Box::new(Rook::new(to, White))),
+                                PieceTypes::Rook => {
+                                    self.pieces.insert(to, Box::new(Rook::new(to, White)))
+                                }
                                 PieceTypes::Bishop => {
                                     self.pieces.insert(to, Box::new(Bishop::new(to, White)))
                                 }
@@ -372,7 +648,9 @@ impl Board {
                                 PieceTypes::Queen => {
                                     self.pieces.insert(to, Box::new(Queen::new(to, Black)))
                                 }
-                                PieceTypes::Rook => self.pieces.insert(to, Box::new(Rook::new(to, Black))),
+                                PieceTypes::Rook => {
+                                    self.pieces.insert(to, Box::new(Rook::new(to, Black)))
+                                }
                                 PieceTypes::Bishop => {
                                     self.pieces.insert(to, Box::new(Bishop::new(to, Black)))
                                 }
@@ -386,7 +664,7 @@ impl Board {
 
                     self.pieces.remove(&from);
                 } else {
-                    println!("Illegal promotion move from {} to {}", from, to);
+                    debug!("Illegal promotion move from {} to {}", from, to);
                     return;
                 }
             }
@@ -398,17 +676,8 @@ impl Board {
         };
 
         if let Some(pos) = self.get_modifiers().en_passant {
-            println!("En passant at {}", pos);
+            debug!("En passant at {}", pos);
         }
-    }
-
-    /// Returns a vector of all the legal moves on the board
-    pub fn get_all_legal_moves(&self) -> Vec<Move> {
-        let mut moves = Vec::new();
-        for (_, piece) in self.pieces.iter() {
-            moves.append(&mut piece.get_all_legal_moves(self));
-        }
-        moves
     }
 
     // TODO add an enum for the different types of pieces instead of a string
