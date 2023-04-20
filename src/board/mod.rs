@@ -220,6 +220,8 @@ impl Board {
                                             &piece.get_position().increment(Up, 1).unwrap(),
                                         );
                                     }
+
+                                    self.modifiers.en_passant = None;
                                 }
                             }
                             Black => {
@@ -230,6 +232,8 @@ impl Board {
                                         );
                                     }
                                 }
+
+                                self.modifiers.en_passant = None;
                             }
                         }
 
@@ -347,19 +351,38 @@ impl Board {
                 }
 
                 if moves.contains(&mov) {
-                    match promotion {
-                        PieceTypes::Queen => {
-                            self.pieces.insert(to, Box::new(Queen::new(to, White)))
+                    match self.turn {
+                        White => {
+                            match promotion {
+                                PieceTypes::Queen => {
+                                    self.pieces.insert(to, Box::new(Queen::new(to, White)))
+                                }
+                                PieceTypes::Rook => self.pieces.insert(to, Box::new(Rook::new(to, White))),
+                                PieceTypes::Bishop => {
+                                    self.pieces.insert(to, Box::new(Bishop::new(to, White)))
+                                }
+                                PieceTypes::Knight => {
+                                    self.pieces.insert(to, Box::new(Knight::new(to, White)))
+                                }
+                                _ => self.pieces.insert(to, Box::new(Queen::new(to, White))),
+                            };
                         }
-                        PieceTypes::Rook => self.pieces.insert(to, Box::new(Rook::new(to, White))),
-                        PieceTypes::Bishop => {
-                            self.pieces.insert(to, Box::new(Bishop::new(to, White)))
+                        Black => {
+                            match promotion {
+                                PieceTypes::Queen => {
+                                    self.pieces.insert(to, Box::new(Queen::new(to, Black)))
+                                }
+                                PieceTypes::Rook => self.pieces.insert(to, Box::new(Rook::new(to, Black))),
+                                PieceTypes::Bishop => {
+                                    self.pieces.insert(to, Box::new(Bishop::new(to, Black)))
+                                }
+                                PieceTypes::Knight => {
+                                    self.pieces.insert(to, Box::new(Knight::new(to, Black)))
+                                }
+                                _ => self.pieces.insert(to, Box::new(Queen::new(to, Black))),
+                            };
                         }
-                        PieceTypes::Knight => {
-                            self.pieces.insert(to, Box::new(Knight::new(to, White)))
-                        }
-                        _ => self.pieces.insert(to, Box::new(Queen::new(to, White))),
-                    };
+                    }
 
                     self.pieces.remove(&from);
                 } else {
