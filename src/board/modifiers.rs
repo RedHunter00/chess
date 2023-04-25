@@ -1,8 +1,9 @@
 // TODO: will also be important for implementing the 50 move rule
 // TODO: the 3 fold repetition rule and insufficient material rule
 
-use crate::positions::position::Position;
+use crate::core::position::Position;
 
+#[derive(Debug, Clone, Copy)]
 pub struct Modifiers {
     pub can_white_castle_kingside: bool,
     pub can_white_castle_queenside: bool,

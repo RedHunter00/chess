@@ -1,41 +1,25 @@
 // This module contains the Position struct
 
+use super::direction::Direction;
 use std::fmt;
-
-//? adding UpUpLeft, UpUpRight, DownDownLeft, DownDownRight, LeftLeftUp, LeftLeftDown, RightRightUp, RightRightDown
-//? for the knight might be a good idea
-/// Core enum that represents the direction of a move
-/// Used in the Position struct to get a relative position from a given position
-/// in a specific direction
-#[derive(Clone, Copy, PartialEq)]
-pub enum Direction {
-    Right,
-    Left,
-    Up,
-    Down,
-    UpRight,
-    UpLeft,
-    DownRight,
-    DownLeft,
-}
 
 /// A core struct that represents a position on the board.
 /// The position is represented by a tuple of two u8s.
 /// The first u8 represents the x coordinate, the second u8 represents the y coordinate.
 /// The x coordinate is represented by the file, the y coordinate is represented by the rank.
-/// 
+///
 /// # Examples
 /// a1 is represented by (0, 0)
 /// e2 is represented by (4, 1)
 /// h8 is represented by (7, 7)
-/// 
+///
 /// For ease of use the Position struct has a method that allows you to create a Position struct from a file and rank.
 /// The the x,y position should only be used by the board and pieces internally
 /// # Examples
-/// 
+///
 /// ```
 /// use chess::positions::position::Position;
-/// 
+///
 /// let position = Position::from_an('a', 1);
 /// assert_eq!(position, Position::new(0, 0));
 /// ```
@@ -46,7 +30,6 @@ pub struct Position {
 }
 
 impl Position {
-
     /// Creates a new Position struct from a x and y coordinate
     /// Use of this method is discouraged, use Position::from_an instead
     /// for ease of use
@@ -56,8 +39,8 @@ impl Position {
 
     /// Creates a new Position struct from a file and rank
     /// Use this method for ease of use
-    pub fn from_an(file: char, rank: u8) -> Position{
-        Position::new((file as u8) - 97, rank - 1, )
+    pub fn from_an(file: char, rank: u8) -> Position {
+        Position::new((file as u8) - 97, rank - 1)
     }
 
     /// Returns the x coordinate of the position
@@ -130,19 +113,63 @@ impl Position {
                     Some(Position::new(self.x - n, self.y + n))
                 }
             }
+            Direction::RightRightUp => {
+                if self.x + 2 * n > 7 || self.y < n {
+                    None
+                } else {
+                    Some(Position::new(self.x + 2 * n, self.y - n))
+                }
+            }
+            Direction::RightRightDown => {
+                if self.x + 2 * n > 7 || self.y + n > 7 {
+                    None
+                } else {
+                    Some(Position::new(self.x + 2 * n, self.y + n))
+                }
+            }
+            Direction::LeftLeftUp => {
+                if self.x < 2 * n || self.y < n {
+                    None
+                } else {
+                    Some(Position::new(self.x - 2 * n, self.y - n))
+                }
+            }
+            Direction::LeftLeftDown => {
+                if self.x < 2 * n || self.y + n > 7 {
+                    None
+                } else {
+                    Some(Position::new(self.x - 2 * n, self.y + n))
+                }
+            }
+            Direction::UpUpRight => {
+                if self.x + n > 7 || self.y < 2 * n {
+                    None
+                } else {
+                    Some(Position::new(self.x + n, self.y - 2 * n))
+                }
+            }
+            Direction::UpUpLeft => {
+                if self.x < n || self.y < 2 * n {
+                    None
+                } else {
+                    Some(Position::new(self.x - n, self.y - 2 * n))
+                }
+            }
+            Direction::DownDownRight => {
+                if self.x + n > 7 || self.y + 2 * n > 7 {
+                    None
+                } else {
+                    Some(Position::new(self.x + n, self.y + 2 * n))
+                }
+            }
+            Direction::DownDownLeft => {
+                if self.x < n || self.y + 2 * n > 7 {
+                    None
+                } else {
+                    Some(Position::new(self.x - n, self.y + 2 * n))
+                }
+            }
         }
-    }
-
-    //? might be unnecessary as increment works better
-    /// Returns a vector of all positions in the given direction
-    pub fn get_all_rel_pos(&self, direction: Direction) -> Vec<Position> {
-        let mut moves = Vec::new();
-        let mut pos = self.increment(direction, 1);
-        while let Some(p) = pos {
-            moves.push(p);
-            pos = p.increment(direction, 1);
-        }
-        moves
     }
 }
 

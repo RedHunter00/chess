@@ -1,23 +1,16 @@
 /// The cli module contains the code for the command line interface
 use crate::board::*;
-use crate::positions::mov::CastleTypes;
-use crate::positions::mov::Move;
-use crate::positions::mov::PieceTypes;
-use crate::positions::position::Position;
-use crate::utilities::Color;
+use crate::core::castles::Castles;
+use crate::core::color::Color;
+use crate::core::mov::Move;
+use crate::core::pieces::Pieces;
+use crate::core::position::Position;
 use colored::*;
+use log::info;
 use std::process::Command;
 
-//TODO: make squares white and black instead of dots
-/// Renders the game to the terminal (cli)
 fn render_game(fen: String) {
     let x: Vec<&str> = fen.split("/").collect();
-
-    #[cfg(target_os = "linux")]
-    let _ = Command::new("clear").status();
-
-    #[cfg(target_os = "windows")]
-    let _ = Command::new("cls").status();
 
     for rank in (0..=7).rev() {
         print!("{}", (rank + 1).to_string().red());
@@ -62,6 +55,11 @@ fn render_game(fen: String) {
 
 /// Makes a move on the board and re-renders the game
 fn make_move(board: &mut Board, mov: Move) {
+    #[cfg(target_os = "linux")]
+    let _ = Command::new("clear").status();
+    #[cfg(target_os = "windows")]
+    let _ = Command::new("cls").status();
+    
     board.make_move(mov);
     board.update_fen();
     render_game(board.get_fen());
@@ -76,12 +74,30 @@ pub fn start_game() {
     render_game(board.get_fen());
 
     loop {
-        if let Some(color) = board.is_checkmated(){
-            match color {
-                Color::White => println!("Black wins by checkmate"),
-                Color::Black => println!("White wins by checkmate"),
+        match board.get_turn() {
+            Color::White => {
+                if board.in_checkmate(Color::White) {
+                    info!("Black wins by checkmate");
+                    break;
+                } else if board.in_stalemate(Color::White) {
+                    info!("Stalemate");
+                    break;
+                }
             }
-            return;
+            Color::Black => {
+                if board.in_checkmate(Color::Black) {
+                    info!("White wins by checkmate");
+                    break;
+                } else if board.in_stalemate(Color::Black) {
+                    info!("Stalemate");
+                    break;
+                }
+            }
+        }
+
+        match board.get_turn() {
+            Color::White => info!("White to move"),
+            Color::Black => info!("Black to move"),
         }
 
         println!("\nenter move:");
@@ -111,10 +127,10 @@ pub fn start_game() {
                 let piece_type;
 
                 match pat {
-                    "=Q" => piece_type = PieceTypes::Queen,
-                    "=R" => piece_type = PieceTypes::Rook,
-                    "=B" => piece_type = PieceTypes::Bishop,
-                    "=Kn" => piece_type = PieceTypes::Knight,
+                    "=Q" => piece_type = Pieces::Queen,
+                    "=R" => piece_type = Pieces::Rook,
+                    "=B" => piece_type = Pieces::Bishop,
+                    "=Kn" => piece_type = Pieces::Knight,
                     _ => panic!("Invalid promotion"),
                 }
 
@@ -134,7 +150,7 @@ pub fn start_game() {
         if queenside {
             let mov = Move::Castle {
                 color: turn,
-                castle_type: CastleTypes::QueenSide,
+                castle_type: Castles::QueenSide,
             };
             make_move(&mut board, mov);
             continue;
@@ -145,7 +161,7 @@ pub fn start_game() {
         if kingside {
             let mov = Move::Castle {
                 color: turn,
-                castle_type: CastleTypes::KingSide,
+                castle_type: Castles::KingSide,
             };
             make_move(&mut board, mov);
             continue;
@@ -163,7 +179,6 @@ pub fn start_game() {
         );
         let mov = Move::Normal { from, to };
 
-        println!("{} {}", from, to);
         make_move(&mut board, mov);
     }
 }

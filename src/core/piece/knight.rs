@@ -1,45 +1,10 @@
-/// This module contains the Knight struct and its implementation of the Piece trait.
-
-use super::piece::Piece;
+use super::*;
 use crate::board::Board;
-use crate::positions::mov::Move;
-use crate::positions::position::{Direction, Position};
-use crate::utilities::Color;
+use crate::core::direction::Direction;
+use crate::core::mov::Move;
 
-pub struct Knight {
-    position: Position,
-    color: Color,
-    piece_type: String,
-}
-
-impl Knight {
-    pub fn new(position: Position, color: Color) -> Knight {
-        Knight {
-            position,
-            color,
-            piece_type: String::from("Knight"),
-        }
-    }
-}
-
-impl Piece for Knight {
-    fn get_color(&self) -> Color {
-        self.color
-    }
-
-    fn get_piece_type(&self) -> String {
-        self.piece_type.clone()
-    }
-
-    fn get_position(&self) -> Position {
-        self.position
-    }
-
-    fn set_position(&mut self, position: Position) {
-        self.position = position;
-    }
-
-    fn get_all_legal_moves(&self, board: &Board) -> Vec<crate::positions::mov::Move> {
+impl Piece {
+    pub fn get_all_legal_moves_knight(&self, board: &Board) -> Vec<crate::core::mov::Move> {
         let start = self.position;
         let mut moves = Vec::new();
 
