@@ -1,46 +1,12 @@
-/// This module contains the Pawn struct and its implementation of the Piece trait.
-use super::piece::Piece;
+use super::*;
 use crate::board::Board;
-use crate::positions::mov::Move;
-use crate::positions::mov::PieceTypes;
-use crate::positions::position::{Direction, Position};
-use crate::utilities::Color;
+use crate::core::color::Color;
+use crate::core::direction::Direction;
+use crate::core::mov::Move;
+use crate::core::pieces::Pieces;
 
-pub struct Pawn {
-    position: Position,
-    color: Color,
-    piece_type: String,
-}
-
-impl Pawn {
-    pub fn new(position: Position, color: Color) -> Pawn {
-        Pawn {
-            position,
-            color,
-            piece_type: String::from("Pawn"),
-        }
-    }
-}
-
-// end my suffering please :(
-impl Piece for Pawn {
-    fn get_color(&self) -> Color {
-        self.color
-    }
-
-    fn get_piece_type(&self) -> String {
-        self.piece_type.clone()
-    }
-
-    fn get_position(&self) -> Position {
-        self.position
-    }
-
-    fn set_position(&mut self, position: Position) {
-        self.position = position;
-    }
-
-    fn get_all_legal_moves(&self, board: &Board) -> Vec<Move> {
+impl Piece {
+    pub fn get_all_legal_moves_pawn(&self, board: &Board) -> Vec<Move> {
         let start = self.position;
         let mut moves = Vec::new();
 
@@ -101,28 +67,28 @@ impl Piece for Pawn {
                         let mov = Move::Promotion {
                             from: start,
                             to: target,
-                            promotion: PieceTypes::Knight,
+                            promotion: Pieces::Knight,
                         };
                         moves.push(mov);
 
                         let mov = Move::Promotion {
                             from: start,
                             to: target,
-                            promotion: PieceTypes::Bishop,
+                            promotion: Pieces::Bishop,
                         };
                         moves.push(mov);
 
                         let mov = Move::Promotion {
                             from: start,
                             to: target,
-                            promotion: PieceTypes::Rook,
+                            promotion: Pieces::Rook,
                         };
                         moves.push(mov);
 
                         let mov = Move::Promotion {
                             from: start,
                             to: target,
-                            promotion: PieceTypes::Queen,
+                            promotion: Pieces::Queen,
                         };
                         moves.push(mov);
                     }
@@ -148,28 +114,28 @@ impl Piece for Pawn {
                         let mov = Move::Promotion {
                             from: start,
                             to: target,
-                            promotion: PieceTypes::Knight,
+                            promotion: Pieces::Knight,
                         };
                         moves.push(mov);
 
                         let mov = Move::Promotion {
                             from: start,
                             to: target,
-                            promotion: PieceTypes::Bishop,
+                            promotion: Pieces::Bishop,
                         };
                         moves.push(mov);
 
                         let mov = Move::Promotion {
                             from: start,
                             to: target,
-                            promotion: PieceTypes::Rook,
+                            promotion: Pieces::Rook,
                         };
                         moves.push(mov);
 
                         let mov = Move::Promotion {
                             from: start,
                             to: target,
-                            promotion: PieceTypes::Queen,
+                            promotion: Pieces::Queen,
                         };
                         moves.push(mov);
                     }
@@ -193,28 +159,28 @@ impl Piece for Pawn {
                     let mov = Move::Promotion {
                         from: start,
                         to: target,
-                        promotion: PieceTypes::Knight,
+                        promotion: Pieces::Knight,
                     };
                     moves.push(mov);
 
                     let mov = Move::Promotion {
                         from: start,
                         to: target,
-                        promotion: PieceTypes::Bishop,
+                        promotion: Pieces::Bishop,
                     };
                     moves.push(mov);
 
                     let mov = Move::Promotion {
                         from: start,
                         to: target,
-                        promotion: PieceTypes::Rook,
+                        promotion: Pieces::Rook,
                     };
                     moves.push(mov);
 
                     let mov = Move::Promotion {
                         from: start,
                         to: target,
-                        promotion: PieceTypes::Queen,
+                        promotion: Pieces::Queen,
                     };
                     moves.push(mov);
 

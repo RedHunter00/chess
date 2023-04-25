@@ -1,46 +1,12 @@
-/// This module contains the King struct and its implementation of the Piece trait.
-
-use super::piece::Piece;
+use super::*;
 use crate::board::Board;
-use crate::positions::mov::Move;
-use crate::positions::position::{Direction, Position};
-use crate::utilities::Color;
-use crate::positions::mov::CastleTypes;
+use crate::core::castles::Castles;
+use crate::core::color::Color;
+use crate::core::direction::Direction;
+use crate::core::mov::Move;
 
-pub struct King {
-    position: Position,
-    color: Color,
-    piece_type: String,
-}
-
-impl King {
-    pub fn new(position: Position, color: Color) -> King {
-        King {
-            position,
-            color,
-            piece_type: String::from("King"),
-        }
-    }
-}
-
-impl Piece for King {
-    fn get_color(&self) -> Color {
-        self.color
-    }
-
-    fn get_piece_type(&self) -> String {
-        self.piece_type.clone()
-    }
-
-    fn get_position(&self) -> Position {
-        self.position
-    }
-
-    fn set_position(&mut self, position: Position) {
-        self.position = position;
-    }
-
-    fn get_all_legal_moves(&self, board: &Board) -> Vec<Move> {
+impl Piece {
+    pub fn get_all_legal_moves_king(&self, board: &Board) -> Vec<Move> {
         let start = self.position;
         let directions = vec![
             Direction::Up,
@@ -77,24 +43,33 @@ impl Piece for King {
         match self.get_color() {
             Color::White => {
                 if board.get_modifiers().can_white_castle_kingside {
-
-                    if let None = board.get_piece(self.get_position().increment(Direction::Right, 1).unwrap()){
-                        if let None = board.get_piece(self.get_position().increment(Direction::Right, 2).unwrap()){
+                    if let None =
+                        board.get_piece(self.get_position().increment(Direction::Right, 1).unwrap())
+                    {
+                        if let None = board
+                            .get_piece(self.get_position().increment(Direction::Right, 2).unwrap())
+                        {
                             let mov = Move::Castle {
                                 color: Color::White,
-                                castle_type: CastleTypes::KingSide,
+                                castle_type: Castles::KingSide,
                             };
                             moves.push(mov);
                         }
                     };
                 }
                 if board.get_modifiers().can_white_castle_queenside {
-                    if let None = board.get_piece(self.get_position().increment(Direction::Left, 1).unwrap()){
-                        if let None = board.get_piece(self.get_position().increment(Direction::Left, 2).unwrap()){
-                            if let None = board.get_piece(self.get_position().increment(Direction::Left, 3).unwrap()){
+                    if let None =
+                        board.get_piece(self.get_position().increment(Direction::Left, 1).unwrap())
+                    {
+                        if let None = board
+                            .get_piece(self.get_position().increment(Direction::Left, 2).unwrap())
+                        {
+                            if let None = board.get_piece(
+                                self.get_position().increment(Direction::Left, 3).unwrap(),
+                            ) {
                                 let mov = Move::Castle {
                                     color: Color::White,
-                                    castle_type: CastleTypes::QueenSide,
+                                    castle_type: Castles::QueenSide,
                                 };
                                 moves.push(mov);
                             }
@@ -104,23 +79,33 @@ impl Piece for King {
             }
             Color::Black => {
                 if board.get_modifiers().can_black_castle_kingside {
-                    if let None = board.get_piece(self.get_position().increment(Direction::Right, 1).unwrap()){
-                        if let None = board.get_piece(self.get_position().increment(Direction::Right, 2).unwrap()){
+                    if let None =
+                        board.get_piece(self.get_position().increment(Direction::Right, 1).unwrap())
+                    {
+                        if let None = board
+                            .get_piece(self.get_position().increment(Direction::Right, 2).unwrap())
+                        {
                             let mov = Move::Castle {
                                 color: Color::Black,
-                                castle_type: CastleTypes::KingSide,
+                                castle_type: Castles::KingSide,
                             };
                             moves.push(mov);
                         }
                     };
                 }
                 if board.get_modifiers().can_black_castle_queenside {
-                    if let None = board.get_piece(self.get_position().increment(Direction::Left, 1).unwrap()){
-                        if let None = board.get_piece(self.get_position().increment(Direction::Left, 2).unwrap()){
-                            if let None = board.get_piece(self.get_position().increment(Direction::Left, 3).unwrap()){
+                    if let None =
+                        board.get_piece(self.get_position().increment(Direction::Left, 1).unwrap())
+                    {
+                        if let None = board
+                            .get_piece(self.get_position().increment(Direction::Left, 2).unwrap())
+                        {
+                            if let None = board.get_piece(
+                                self.get_position().increment(Direction::Left, 3).unwrap(),
+                            ) {
                                 let mov = Move::Castle {
                                     color: Color::Black,
-                                    castle_type: CastleTypes::QueenSide,
+                                    castle_type: Castles::QueenSide,
                                 };
                                 moves.push(mov);
                             }
