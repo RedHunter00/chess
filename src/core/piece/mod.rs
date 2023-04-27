@@ -16,14 +16,25 @@ pub struct Piece {
     position: Position,
     color: Color,
     piece_type: Pieces,
+    value: u8,
 }
 
 impl Piece {
     pub fn new(position: Position, color: Color, piece_type: Pieces) -> Piece {
+        let value = match piece_type {
+            Pieces::King => 0,
+            Pieces::Queen => 9,
+            Pieces::Rook => 5,
+            Pieces::Bishop => 3,
+            Pieces::Knight => 3,
+            Pieces::Pawn => 1,
+        };
+
         Piece {
             position,
             color,
             piece_type,
+            value,
         }
     }
 

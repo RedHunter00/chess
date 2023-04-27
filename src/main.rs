@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 mod board;
+mod engine;
 mod core;
 mod cli;
 use log::LevelFilter;
