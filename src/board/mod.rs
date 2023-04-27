@@ -2,7 +2,7 @@
 /// Contains the code for the board struct
 /// Contains most of the high level game logic accessible for the user
 mod modifiers;
-use crate::core::castles::Castles::{KingSide, QueenSide};
+use crate::core::castles::Castles::{self, KingSide, QueenSide};
 use crate::core::color::Color;
 use crate::core::color::Color::Black;
 use crate::core::color::Color::White;
@@ -12,7 +12,6 @@ use crate::core::mov::Move;
 use crate::core::piece::Piece;
 use crate::core::pieces::Pieces;
 use crate::core::position::Position;
-use log::{debug, info, warn};
 use modifiers::Modifiers;
 use std::collections::HashMap;
 
@@ -75,6 +74,123 @@ impl Board {
             modifiers: Modifiers::new(),
             turn: White,
             fen: String::new(),
+        }
+    }
+
+    pub fn from_fen(fen: &str) -> Board {
+        let mut pieces = HashMap::new();
+        let modifiers = Modifiers::new();
+        let turn = Color::White;
+        let mut rank = 7;
+        let mut file = 0;
+
+        for c in fen.chars() {
+            match c {
+                ' ' => break,
+                '/' => {
+                    rank -= 1;
+                    file = 0;
+                }
+                'K' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::White, Pieces::King),
+                    );
+                    file += 1;
+                }
+                'Q' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::White, Pieces::Queen),
+                    );
+                    file += 1;
+                }
+                'R' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::White, Pieces::Rook),
+                    );
+                    file += 1;
+                }
+                'B' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::White, Pieces::Bishop),
+                    );
+                    file += 1;
+                }
+                'N' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::White, Pieces::Knight),
+                    );
+                    file += 1;
+                }
+                'P' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::White, Pieces::Pawn),
+                    );
+                    file += 1;
+                }
+                'k' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::Black, Pieces::King),
+                    );
+                    file += 1;
+                }
+                'q' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::Black, Pieces::Queen),
+                    );
+                    file += 1;
+                }
+                'r' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::Black, Pieces::Rook),
+                    );
+                    file += 1;
+                }
+                'b' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::Black, Pieces::Bishop),
+                    );
+                    file += 1;
+                }
+                'n' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::Black, Pieces::Knight),
+                    );
+                    file += 1;
+                }
+                'p' => {
+                    pieces.insert(
+                        Position::new(file, rank),
+                        Piece::new(Position::new(file, rank), Color::Black, Pieces::Pawn),
+                    );
+                    file += 1;
+                }
+                '1'..='8' => {
+                    let count = c.to_digit(10).unwrap() as usize;
+                    for _ in 0..count {
+                        pieces.remove(&Position::new(file, rank));
+                        file += 1;
+                    }
+                }
+                _ => (),
+            }
+        }
+
+        Board {
+            pieces,
+            modifiers,
+            turn,
+            fen: fen.to_string(),
         }
     }
 
@@ -148,10 +264,6 @@ impl Board {
         fen
     }
 
-    pub fn update_fen(&mut self) {
-        self.fen = self.generate_fen();
-    }
-
     pub fn get_all_legal_moves_for_black(&self) -> Vec<Move> {
         let pseudo_moves = self.get_all_pseudo_legal_moves_for_black();
         self.verify_checks(pseudo_moves)
@@ -213,6 +325,81 @@ impl Board {
         in_check
     }
 
+    pub fn calculate_nr_of_moves_with_depth(&self, depth: u32) -> u32 {
+        let mut nr_of_moves = 0;
+        if depth == 0 {
+            return 1;
+        }
+
+        match self.get_turn() {
+            White => {
+                for mov in self.get_all_legal_moves_for_white() {
+                    let mut board = self.clone();
+                    board.make_move(mov);
+                    nr_of_moves += board.calculate_nr_of_moves_with_depth(depth - 1);
+                }
+            }
+            Black => {
+                for mov in self.get_all_legal_moves_for_black() {
+                    let mut board = self.clone();
+                    board.make_move(mov);
+                    nr_of_moves += board.calculate_nr_of_moves_with_depth(depth - 1);
+                }
+            }
+        }
+
+        nr_of_moves
+    }
+
+    fn make_move_no_checks(&mut self, mov: Move) {
+        match mov {
+            Move::Normal { from, to } => {
+                let piece = self.remove_piece(from).unwrap();
+                self.remove_piece(to);
+                self.add_piece(to, piece);
+            }
+            Move::Promotion {
+                from,
+                to,
+                promotion,
+            } => {
+                let piece = self.remove_piece(from).unwrap();
+                self.remove_piece(to);
+                self.add_piece(to, Piece::new(to, piece.get_color(), promotion));
+            }
+            Move::Castle { color, castle_type } => match color {
+                White => match castle_type {
+                    Castles::KingSide => {
+                        let king = self.remove_piece(Position::new(4, 0)).unwrap();
+                        let rook = self.remove_piece(Position::new(7, 0)).unwrap();
+                        self.add_piece(Position::new(6, 0), king);
+                        self.add_piece(Position::new(5, 0), rook);
+                    }
+                    Castles::QueenSide => {
+                        let king = self.remove_piece(Position::new(4, 0)).unwrap();
+                        let rook = self.remove_piece(Position::new(0, 0)).unwrap();
+                        self.add_piece(Position::new(2, 0), king);
+                        self.add_piece(Position::new(3, 0), rook);
+                    }
+                },
+                Black => match castle_type {
+                    Castles::KingSide => {
+                        let king = self.remove_piece(Position::new(4, 7)).unwrap();
+                        let rook = self.remove_piece(Position::new(7, 7)).unwrap();
+                        self.add_piece(Position::new(6, 7), king);
+                        self.add_piece(Position::new(5, 7), rook);
+                    }
+                    Castles::QueenSide => {
+                        let king = self.remove_piece(Position::new(4, 7)).unwrap();
+                        let rook = self.remove_piece(Position::new(0, 7)).unwrap();
+                        self.add_piece(Position::new(2, 7), king);
+                        self.add_piece(Position::new(3, 7), rook);
+                    }
+                },
+            },
+        }
+    }
+
     pub fn in_checkmate(&self, color: Color) -> bool {
         match color {
             White => {
@@ -259,18 +446,18 @@ impl Board {
         match mov {
             Move::Normal { from, to } => {
                 if from.get_x() > 7 || from.get_y() > 7 || to.get_x() > 7 || to.get_y() > 7 {
-                    warn!("Invalid location at from {} and/or to {}", from, to);
+                    //warn!("Invalid location at from {} and/or to {}", from, to);
                     return;
                 }
 
                 if let None = self.get_piece(from) {
-                    warn!("No piece at {}", from);
+                    //warn!("No piece at {}", from);
                     return;
                 }
 
                 if let Some(piece) = self.get_piece(from) {
                     if piece.get_color() != self.turn {
-                        warn!("Wrong color piece at {}", from);
+                        //warn!("Wrong color piece at {}", from);
                         return;
                     }
                 }
@@ -292,11 +479,32 @@ impl Board {
                 let moves = self.verify_checks(moves);
 
                 if moves.contains(&mov) {
-                    info!("Making move from {} to {}", from, to);
+                    //info!("Making move from {} to {}", from, to);
 
                     self.pieces.remove(&to);
                     let mut piece = self.pieces.remove(&from).unwrap();
                     piece.set_position(to);
+
+                    let to_x = to.get_x();
+                    let to_y = to.get_y();
+
+                    match to_x {
+                        0 => {
+                            if to_y == 0 {
+                                self.modifiers.can_white_castle_queenside = false;
+                            } else if to_y == 7 {
+                                self.modifiers.can_black_castle_queenside = false;
+                            }
+                        }
+                        7 => {
+                            if to_y == 0 {
+                                self.modifiers.can_white_castle_kingside = false;
+                            } else if to_y == 7 {
+                                self.modifiers.can_black_castle_kingside = false;
+                            }
+                        }
+                        _ => (),
+                    }
 
                     if piece.get_piece_type() == Pieces::King {
                         match self.turn {
@@ -370,7 +578,7 @@ impl Board {
 
                     self.pieces.insert(to, piece);
                 } else {
-                    warn!("Illegal move from {} to {}", from, to);
+                    //warn!("Illegal move from {} to {}", from, to);
                     return;
                 }
             }
@@ -440,7 +648,7 @@ impl Board {
                         }
                     }
                 } else {
-                    debug!("Illegal castleing move");
+                    //warn!("Illegal castleing move");
                     return;
                 }
 
@@ -470,6 +678,27 @@ impl Board {
                 let moves = self.verify_checks(moves);
 
                 if moves.contains(&mov) {
+                    let to_x = to.get_x();
+                    let to_y = to.get_y();
+
+                    match to_x {
+                        0 => {
+                            if to_y == 0 {
+                                self.modifiers.can_white_castle_queenside = false;
+                            } else if to_y == 7 {
+                                self.modifiers.can_black_castle_queenside = false;
+                            }
+                        }
+                        7 => {
+                            if to_y == 0 {
+                                self.modifiers.can_white_castle_kingside = false;
+                            } else if to_y == 7 {
+                                self.modifiers.can_black_castle_kingside = false;
+                            }
+                        }
+                        _ => (),
+                    }
+
                     match self.turn {
                         White => {
                             match promotion {
@@ -509,19 +738,21 @@ impl Board {
 
                     self.pieces.remove(&from);
                 } else {
-                    debug!("Illegal promotion move from {} to {}", from, to);
+                    //warn!("Illegal promotion move from {} to {}", from, to);
                     return;
                 }
             }
         }
+
+        self.update_fen();
 
         self.turn = match self.turn {
             White => Black,
             Black => White,
         };
 
-        if let Some(pos) = self.get_modifiers().en_passant {
-            debug!("En passant at {}", pos);
+        if let Some(_) = self.get_modifiers().en_passant {
+            //info!("En passant at {}", pos);
         }
     }
 
@@ -543,7 +774,6 @@ impl Board {
             match mov {
                 Move::Normal { from, to } => {
                     let mut board = self.clone();
-
                     board.pieces.remove(&to);
                     let mut piece = board.pieces.remove(&from).unwrap();
                     piece.set_position(to);
@@ -703,5 +933,9 @@ impl Board {
             moves.append(&mut piece.get_all_legal_moves(self));
         }
         moves
+    }
+
+    fn update_fen(&mut self) {
+        self.fen = self.generate_fen();
     }
 }

@@ -6,7 +6,7 @@ use crate::core::mov::Move;
 use crate::core::pieces::Pieces;
 use crate::core::position::Position;
 use colored::*;
-use log::info;
+use log::{debug, info};
 use std::process::Command;
 
 fn render_game(fen: String) {
@@ -59,10 +59,9 @@ fn make_move(board: &mut Board, mov: Move) {
     let _ = Command::new("clear").status();
     #[cfg(target_os = "windows")]
     let _ = Command::new("cls").status();
-    
+
     board.make_move(mov);
-    board.update_fen();
-    render_game(board.get_fen());
+    render_game(board.generate_fen());
 }
 
 /// Starts the game
@@ -70,10 +69,19 @@ fn make_move(board: &mut Board, mov: Move) {
 pub fn start_game() {
     let mut board = Board::new_arranged();
 
-    board.update_fen();
-    render_game(board.get_fen());
+    render_game(board.generate_fen());
 
     loop {
+        debug!(
+            "number of moves ==> depth1: {} depth2: {}",
+            board.calculate_nr_of_moves_with_depth(1),
+            board.calculate_nr_of_moves_with_depth(2)
+        );
+        // debug!(
+        //     "number of moves ==> depth3: {} depth4: {}",
+        //     board.calculate_nr_of_moves_with_depth(3),
+        //     board.calculate_nr_of_moves_with_depth(4)
+        // );
         match board.get_turn() {
             Color::White => {
                 if board.in_checkmate(Color::White) {
