@@ -1,0 +1,11 @@
+[package]
+name = "chess-cli"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+chess-base = { path = "../chess-base" }
+log = "0.4.17"
+fern = "0.6.2"
+chrono = "0.4.24"
+colored = "2.0.0"
