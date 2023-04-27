@@ -1,10 +1,6 @@
-[package]
-name = "chess"
-version = "1.0.0"
-edition = "2021"
-
-[dependencies]
-log = "0.4.17"
-fern = "0.6.2"
-colored = "2.0.0"
-chrono = "0.4.24"
+[workspace]
+members = [
+    "chess-base",
+    "chess-cli",
+    "chess-gui",
+]

@@ -1,13 +1,60 @@
-/// The cli module contains the code for the command line interface
-use crate::board::*;
-use crate::core::castles::Castles;
-use crate::core::color::Color;
-use crate::core::mov::Move;
-use crate::core::pieces::Pieces;
-use crate::core::position::Position;
+use chess_base as base;
+
+use base::board::*;
+use base::core::castles::Castles;
+use base::core::color::Color;
+use base::core::mov::Move;
+use base::core::pieces::Pieces;
+use base::core::position::Position;
 use colored::*;
+use fern::Dispatch;
+use log::Level;
+use log::LevelFilter;
 use log::{debug, info};
+use std::io;
 use std::process::Command;
+use std::thread;
+
+fn setup_logger(log_level: LevelFilter) -> Result<(), fern::InitError> {
+    let console_logger = Dispatch::new()
+        .format(|out, message, record| {
+            let mut level = format!("{}", record.level()).white();
+
+            match record.level() {
+                Level::Error => level = level.truecolor(240, 76, 76).bold(),
+                Level::Warn => level = level.truecolor(245, 245, 67).bold(),
+                Level::Debug => level = level.truecolor(79, 193, 255).bold(),
+                Level::Info => level = level.truecolor(35, 209, 139).bold(),
+                _ => (),
+            };
+
+            if record.level() == Level::Debug || record.level() == Level::Trace {
+                out.finish(format_args!(
+                    "{} [{}][{}][{}][{}] {}",
+                    level,
+                    chrono::Local::now().format("%H:%M:%S"),
+                    thread::current().name().unwrap_or("<undefined>"),
+                    record.file().unwrap_or("<undefined>"),
+                    record.line().unwrap_or(0),
+                    message
+                ))
+            } else {
+                out.finish(format_args!("{} {}", level, message))
+            }
+        })
+        .level(LevelFilter::Off)
+        .level_for("chess_base", log_level)
+        .level_for("chess_cli", log_level)
+        .chain(io::stdout());
+    //or stderr
+
+    let logger = Dispatch::new().chain(console_logger);
+
+    match logger.apply() {
+        Ok(()) => Ok(()),
+        Err(e) => Err(fern::InitError::SetLoggerError(e)),
+    }
+}
 
 fn render_game(fen: String) {
     let x: Vec<&str> = fen.split("/").collect();
@@ -189,4 +236,9 @@ pub fn start_game() {
 
         make_move(&mut board, mov);
     }
+}
+
+fn main() {
+    setup_logger(LevelFilter::Trace).unwrap();
+    start_game();
 }
