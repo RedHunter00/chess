@@ -442,23 +442,23 @@ impl Board {
         false
     }
 
-    pub fn make_move(&mut self, mov: Move) {
+    pub fn make_move(&mut self, mov: Move) -> bool {
         match mov {
             Move::Normal { from, to } => {
                 if from.get_x() > 7 || from.get_y() > 7 || to.get_x() > 7 || to.get_y() > 7 {
                     //warn!("Invalid location at from {} and/or to {}", from, to);
-                    return;
+                    return false;
                 }
 
                 if let None = self.get_piece(from) {
                     //warn!("No piece at {}", from);
-                    return;
+                    return false;
                 }
 
                 if let Some(piece) = self.get_piece(from) {
                     if piece.get_color() != self.turn {
                         //warn!("Wrong color piece at {}", from);
-                        return;
+                        return false;
                     }
                 }
 
@@ -579,7 +579,7 @@ impl Board {
                     self.pieces.insert(to, piece);
                 } else {
                     //warn!("Illegal move from {} to {}", from, to);
-                    return;
+                    return false;
                 }
             }
             Move::Castle { color, castle_type } => {
@@ -649,7 +649,7 @@ impl Board {
                     }
                 } else {
                     //warn!("Illegal castleing move");
-                    return;
+                    return false;
                 }
 
                 match self.turn {
@@ -739,7 +739,7 @@ impl Board {
                     self.pieces.remove(&from);
                 } else {
                     //warn!("Illegal promotion move from {} to {}", from, to);
-                    return;
+                    return false;
                 }
             }
         }
@@ -754,6 +754,8 @@ impl Board {
         if let Some(_) = self.get_modifiers().en_passant {
             //info!("En passant at {}", pos);
         }
+
+        return true;
     }
 
     pub fn undo_move(&mut self, mov: Move) {
