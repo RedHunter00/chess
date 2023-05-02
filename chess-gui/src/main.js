@@ -71,7 +71,10 @@ function renderGame(fen) {
         const cell = document.querySelector(`[data-position="${position}"]`);
         if (cell) {
           const img = document.createElement("img");
-          img.src = "images/" + char + ".svg";
+          
+          const color = char === char.toUpperCase() ? "w" : "b";
+          img.src = "images/" + char + color + ".svg";
+          
           img.classList.add("piece");
           img.id = "piece-" + position;
           img.setAttribute("draggable", "true");
@@ -82,6 +85,7 @@ function renderGame(fen) {
       }
     }
   }
+
 }
 
 async function fetchFenAndRenderGame() {
