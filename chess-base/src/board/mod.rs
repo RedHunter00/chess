@@ -351,7 +351,7 @@ impl Board {
         nr_of_moves
     }
 
-    fn make_move_no_checks(&mut self, mov: Move) {
+    pub fn make_move_no_checks(&mut self, mov: Move) {
         match mov {
             Move::Normal { from, to } => {
                 let piece = self.remove_piece(from).unwrap();

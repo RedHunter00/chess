@@ -68,6 +68,8 @@ fn render_game(fen: String) {
                     print!(" • ");
                 }
             }
+
+            #[cfg(target_os = "linux")]
             match char {
                 'p' => print!(" {} ", "♟".red()),
                 'P' => print!(" {} ", "♟".white()),
@@ -81,6 +83,25 @@ fn render_game(fen: String) {
                 'Q' => print!(" {} ", "♛".white()),
                 'k' => print!(" {} ", "♚".red()),
                 'K' => print!(" {} ", "♚".white()),
+                _ => (),
+            }
+
+            //not my fault cmd is shit
+            //switch to linux
+            #[cfg(target_os = "windows")]
+            match char {
+                'p' => print!(" {} ", "p".red()),
+                'P' => print!(" {} ", "P".white()),
+                'r' => print!(" {} ", "r".red()),
+                'R' => print!(" {} ", "R".white()),
+                'n' => print!(" {} ", "n".red()),
+                'N' => print!(" {} ", "N".white()),
+                'b' => print!(" {} ", "b".red()),
+                'B' => print!(" {} ", "B".white()),
+                'q' => print!(" {} ", "q".red()),
+                'Q' => print!(" {} ", "Q".white()),
+                'k' => print!(" {} ", "k".red()),
+                'K' => print!(" {} ", "K".white()),
                 _ => (),
             }
         }
